@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zombie Drive & Duel</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        :root {
+            --primary-bg: #1a1a2e;
+            --secondary-bg: #16213e;
+            --accent-color: #e94560;
+            --text-light: #f5f5f5;
+            --text-dark: #0f0f23;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="loading-screen">
+            <div class="loader"></div>
+            <p>Loading Zombie Drive & Duel...</p>
+        </div>
+    </div>
+    
+    <!-- Phaser 3 -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    
+    <!-- Game Scripts -->
+    <script src="js/systems/SaveManager.js"></script>
+    <script src="js/systems/AudioManager.js"></script>
+    <script src="js/systems/Effects.js"></script>
+    <script src="js/systems/Parallax.js"></script>
+    <script src="js/systems/AdManager.js"></script>
+    <script src="js/ui/VirtualControls.js"></script>
+    <script src="js/entities/Bullet.js"></script>
+    <script src="js/entities/Enemy.js"></script>
+    <script src="js/entities/Player.js"></script>
+    <script src="js/entities/Car.js"></script>
+    <script src="js/scenes/BootScene.js"></script>
+    <script src="js/scenes/PreloadScene.js"></script>
+    <script src="js/scenes/MenuScene.js"></script>
+    <script src="js/scenes/GarageScene.js"></script>
+    <script src="js/scenes/UIScene.js"></script>
+    <script src="js/scenes/PauseScene.js"></script>
+    <script src="js/scenes/GameScene.js"></script>
+    <script src="main-minimal.js"></script>
+</body>
+</html>
