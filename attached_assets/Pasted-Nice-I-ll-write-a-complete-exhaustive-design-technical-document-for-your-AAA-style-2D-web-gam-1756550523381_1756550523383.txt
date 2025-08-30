@@ -1,0 +1,644 @@
+Nice — I’ll write a complete, exhaustive design + technical document for your **AAA-style 2D web game** (“Zombie Drive & Duel”) that you can use as the single-source-of-truth for development, deployment, polishing, and future porting to Unity/Google Play. I’ll include **game design**, **mechanics**, **art & audio guidelines**, **file and code map**, **how each script works**, **asset specifications**, **UI/UX**, **controls**, **touch layout**, **performance & optimization**, **build & deploy instructions (GitHub Pages + Replit)**, **analytics/telemetry**, **monetization (web + AdMob later)**, **legal/privacy**, **QA checklist**, and a prioritized **roadmap** + development task list.
+
+I’ll be explicit and practical so you — or any developer — can implement, extend, or port this project.
+
+---
+
+# Game Overview (high level)
+
+**Title (working):** Zombie Drive & Duel
+**Genre:** 2D Action / Runner + Brawler / Shooter
+**Engine (web version):** Phaser 3 (HTML5 + JS)
+**Target platforms (initial):** Desktop & Mobile web browsers (GitHub Pages / Replit)
+**Future target:** Unity 2D → Android (.aab) for Google Play (AdMob support)
+**Visual style:** Polished 2D, high-contrast flat + soft lighting, parallax backgrounds, particle VFX — “AAA look” while using non-copyright assets.
+**Audio style:** Dynamic, punchy SFX (royalty-free or synthesized WebAudio), ambient loops, minimal OST for tension.
+
+---
+
+# Core Gameplay Loop
+
+1. Player enters Garage → buys/upgrades car & weapons using coins.
+2. Player starts a run/mission (side-scrolling level).
+3. Driving Phase:
+
+   * Control car: accelerate, brake, jump.
+   * Crush enemies, collect coins and pickups (fuel, health).
+   * Fuel depletes; hitting obstacles consumes car HP.
+   * At any time, press `E` to exit car (if safe).
+4. On-Foot Phase:
+
+   * Player fights enemies in melee/ranged combat (punch, kick, weapon).
+   * Can pick up weapons, ammo, coins.
+   * Defeat waves to buy bonuses or re-enter car.
+5. End of run:
+
+   * Run ends by player death or fuel depletion or reaching checkpoint.
+   * Tally coins; show rewards; optionally show interstitial ad (in mobile build).
+6. Progression:
+
+   * Use coins to upgrade car (engine, armor, fuel tank), weapons, and player stats.
+   * Unlock levels, enemy types, and cosmetics.
+
+---
+
+# Game Modes & Screens
+
+* **Main Menu** — Play, Upgrades/Garage, Options, Leaderboard, Credits.
+* **Garage/Shop** — Upgrade and equip car and player (visual preview).
+* **Gameplay Scene** — Core world (driving / on-foot toggling).
+* **Pause Menu** — Resume, Settings, Exit Run.
+* **Game Over / Results** — Stats, coins earned, replay/return to garage.
+* **Store/Monetization Popups** (rewarded ad dialogs).
+* **Settings** — Audio volume, control options, language, accessibility.
+
+---
+
+# Controls (keyboard & mouse)
+
+**Desktop:**
+
+* Drive Left: `A` / Left Arrow
+* Drive Right (accelerate): `D` / Right Arrow
+* Jump: `W` / Up Arrow
+* Exit/Enter Car: `E`
+* Punch: `J`
+* Kick: `K`
+* Shoot (if holding ranged weapon): Left Mouse Button
+* Pause: `Esc`
+
+**Mobile (touch layout):**
+
+* Left virtual button (hold) — move left.
+* Right virtual button (hold) — move right / accelerate.
+* Jump button.
+* Exit/Enter button.
+* Attack button A (punch).
+* Attack button B (kick/shoot context-sensitive).
+* Optional aim/shoot button if weapon supports aim.
+
+---
+
+# Primary Systems (detailed)
+
+## Car System
+
+**Responsibilities**
+
+* Movement: accelerate, brake/reverse, jumping physics, drag & gravity.
+* Wheels rotation animation.
+* Collision handling (obstacles/enemies/terrain).
+* Fuel consumption model (throttle-based).
+* Health/damage model (armor).
+* Interaction: Player exit/enter behavior (spawning player near car).
+* Visuals: particle exhaust, dust on landings, skid sparks.
+
+**Data / Config**
+
+* `enginePower` (force applied while accelerating)
+* `maxSpeed`
+* `jumpForce`
+* `fuelCapacity`
+* `fuelConsumptionRate` (units/sec while accelerating)
+* `armor` (damage reduction)
+* `health` (current HP)
+
+**Implementation notes**
+
+* Use Arcade physics for simple responsive feel; set `body.setDragX()` and `body.setMaxVelocity()`.
+* Apply vertical jump impulse only when `body.blocked.down`.
+* Rotate wheel sprites based on velocity.
+* When fuel = 0 → disable acceleration.
+
+## Player (On-Foot) System
+
+**Responsibilities**
+
+* Run & jump physics, collision with ground & enemies.
+* Melee combat: punch, kick combos (short range).
+* Weapons: ranged (gun) with ammo, reload, and basic projectile physics.
+* Health & damage handling; revive mechanic (with reward or ad).
+* Pickup collection (coins, health, fuel).
+* Animation & state machine: idle, run, jump, attack, hit, death.
+
+**Data / Config**
+
+* `walkSpeed`, `runSpeed`, `jumpForce`, `health`, `stamina` (optional), `meleeDamage`, `meleeRange`, `attackCooldown`.
+
+**Implementation notes**
+
+* Use small hit checks (circle or overlap) for melee attacks.
+* For weapons, spawn projectile sprite with `velocityX` and set `bullet.body.allowGravity = false`.
+* Add short attack cooldowns and invulnerability frames on hit.
+
+## Enemy System
+
+**Types**
+
+* Basic Walker (chases & melee)
+* Tank (slow, high HP)
+* Sprinter (fast, low HP)
+* Ranged Spitter (shoots projectiles)
+* Vehicle enemies (cars/trucks) — optional later
+
+**AI**
+
+* Simple finite-state: `patrol -> pursue -> attack -> knockback -> die`
+* Use distance thresholds for different behaviors.
+* Use grouped spawn logic for performance.
+
+**Loot**
+
+* Drop coins, occasional fuel, or weapon pick-ups.
+
+## Upgrade & Economy System
+
+**Currencies**
+
+* `coins` (main currency)
+* `gems` or `tokens` (premium, optional)
+
+**Upgrades**
+
+* Car: engine, armor, fuel tank, tires (grip), weapon (mounted gun).
+* Player: health, melee damage, weapon unlocks (knife, bat, pistol, shotgun), speed.
+* Cosmetic: skins for car and character.
+
+**Progression**
+
+* Simple linear pricing formula (cost increases per level).
+* Keep save data in `localStorage` (web) with versioning.
+
+## FX & VFX System
+
+* Particles: dust, sparks, blood droplets (use small sprites or shapes).
+* Particle emitters for engine trail (follow car).
+* Camera shake on heavy collisions / boss hits.
+* Slow-motion effect on special kills (scale time).
+
+## Audio System
+
+* Background loop (light ambient) — optional external file (royalty-free).
+* SFX (synthesized or free files):
+
+  * engine hum (loop or synthesized oscillator)
+  * jump thump
+  * punch/kick hit
+  * zombie hurt/death
+  * coin pickup
+  * UI click
+* Volume controls in settings.
+
+**Implementation**
+
+* WebAudio-based AudioManager (synth) for copyright-free starter.
+* Provide hooks to swap in files later (Phaser `this.sound.add`).
+
+---
+
+# Art & Graphics (AAA look with non-copyright assets)
+
+**Visual Goals**
+
+* Crisp silhouette for characters & car; readable at small sizes.
+* Smooth animations (24–30 fps for spritesheets).
+* High contrast between foreground (actors) and background.
+* Subtle lighting & soft gradients for depth.
+
+**Assets List & Specs**
+
+* **Sprite sheets** (player): `player_idle.png`, `player_run.png`, `player_jump.png`, `player_attack1.png`, `player_attack2.png`. Each sheet: 64–128 px frame height (depending on scale), 8–12 frames per animation.
+* **Car sprites**: `car_body.png` (separate layers: body, wheels, exhaust), `car_damage_overlay.png`.
+* **Enemies**: `zombie_spritesheet.png` with run/attack/die frames.
+* **Coins & pickups**: 64×64 PNGs (transparent).
+* **Background layers**: wide seamless textures (1920–3840 px width) for parallax; multiple layers (far mountains, mid trees, near buildings/road).
+* **UI icons**: 128×128 vector-based PNGs (exported), or SVG converted to PNG.
+* **Particles**: small PNGs (8–16 px) for sparks, smoke, dust.
+
+**Art style**
+
+* Use vector/flat shapes, clean outlines, soft highlights.
+* Kenney asset packs (public domain / CC0) are great options if you want quick free art.
+* Ensure all assets added to the repo include LICENSE file if from third-party.
+
+---
+
+# Animations & Motion Design
+
+* Character animations: smooth easing between states; use root motion style (frame spacing tuned to speed).
+* Car motion: suspension bounce on landing — tween `y` position and rotate slightly on collision.
+* Idle subtle breathing animation for character.
+* Use easing curves (`Cubic.easeOut`, `Back.easeOut`) for impactful motion.
+
+---
+
+# UI / HUD Design
+
+* Top-left: Fuel & Car HP (compact bars), center-top: Level/Distance, top-right: Coins.
+* Bottom-left: Left/Right virtual controls (mobile).
+* Bottom-right: Jump, Attack, Special buttons.
+* In-game minimal UI (avoid blocking view of action).
+* Popup designs: translucent glass panels with rounded corners.
+* Use icons + small text; localize text strings.
+
+---
+
+# File & Code Structure (complete)
+
+```
+/ (repo root)
+  index.html
+  main.js                   # Phaser config + scene registry
+  css/
+    style.css
+  js/
+    scenes/
+      BootScene.js
+      PreloadScene.js
+      MenuScene.js
+      GameScene.js
+      UIScene.js
+      GarageScene.js
+      PauseScene.js
+    entities/
+      Car.js
+      Player.js
+      Enemy.js
+      Bullet.js
+    systems/
+      Parallax.js
+      Effects.js
+      AudioManager.js
+      SaveManager.js
+      AdManager.js     # placeholder for AdMob / web ads
+    ui/
+      VirtualControls.js
+  assets/
+    sprites/
+      player/
+        player_idle.png
+        player_run.png
+        ...
+      car/
+        car_body.png
+        wheel.png
+      enemies/
+        zombie_run.png
+        zombie_die.png
+      pickups/
+        coin.png
+        fuel.png
+    backgrounds/
+      bg_far.png
+      bg_mid.png
+      bg_near.png
+    sfx/
+      (or rely on AudioManager synthesizers)
+  README.md
+  LICENSE
+```
+
+---
+
+# Implementation Detail: How Each Main Script Works (written explanation)
+
+### `main.js`
+
+* Creates Phaser `config` with scale settings (responsive), physics (Arcade), and registers scenes in order: Boot → Preload → Menu → Game → UI.
+* On start, instantiates Phaser.Game.
+
+### `BootScene.js`
+
+* Procedurally generates debug textures if no images exist (so game runs).
+* Sets global game constants (e.g., gravity, tile sizes).
+* Transitions to `Preload` scene.
+
+### `PreloadScene.js`
+
+* Loads images (if present), spritesheets, audio files.
+* Shows progress bar.
+* On complete, start `MenuScene`.
+
+### `MenuScene.js`
+
+* Displays title, play button, settings button.
+* Play triggers `GameScene`.
+
+### `GameScene.js` (core)
+
+* Initializes world bounds and physics.
+* Instantiates `Parallax`, `Effects`, `AudioManager`.
+* Create ground collider (wide tile or tileSprite).
+* Spawn `Car` at start X; create `Player` and set `active=false` until exit.
+* Camera set to follow either `car` or `player` depending on `activeTarget`.
+* Input handling: keyboard & pointer; updates virtual controls for mobile.
+* Spawning timers: enemy spawn, pickups spawn.
+* Collisions:
+
+  * Player <-> Enemy: handle damage and knockback.
+  * Car <-> Enemy: crush detection (if car velocity > threshold & colliding from above).
+  * Bullet <-> Enemy: damage & destroy bullet.
+  * Player/Car <-> pickups: apply effects.
+* Game loop:
+
+  * `update()` calls `car.update()` or `player.update()` based on mode, updates enemies, parallax, UI events.
+  * Keeps track of `distance` and progression.
+
+### `Car.js`
+
+* Container that contains car body sprite + wheel sprites.
+* Adds Arcade physics body on container with appropriate size.
+* Exposes `update(cursors, keys)`: acceleration and wheel rotation; jump; fuel consumption.
+* `takeDamage(amount)` handles armor calculation and death.
+
+### `Player.js`
+
+* Arcade sprite with states (idle, run, jump, attack).
+* `punch()` and `kick()` perform overlap checks with nearby enemies to apply damage and VFX.
+* `shoot()` spawns projectile and reduces ammo.
+* Uses `this.scene.effects` & `this.scene.audio` to play VFX/SFX.
+
+### `Enemy.js`
+
+* Arcade sprite with simple AI: uses `setVelocityX()` toward target, plays attack when in range, damages player on contact with cooldown.
+* `takeDamage()` plays hit tween and destroys when HP ≤ 0, triggering coin spawn.
+
+### `Effects.js`
+
+* Helper system to spawn particles: dust, sparks, blood, explosion.
+* Uses Phaser tweens for ephemeral shapes or sprites.
+
+### `AudioManager.js`
+
+* Wrapper around WebAudio (AudioContext); provides `play(name)` mapping to synthesized sounds.
+* Also exposes `playLoop(name)` and `stopLoop()` for background engine/ambience.
+
+### `Parallax.js`
+
+* Creates multiple `tileSprite` layers and updates `tilePositionX` based on camera scroll with different multipliers to get depth.
+
+### `UIScene.js`
+
+* Separate scene rendered above `GameScene`. Listens to game events (`updateUI`) and renders text and bars to avoid coupling UI to game logic.
+
+### `SaveManager.js`
+
+* Simple `localStorage` wrapper: `save(key, data)`, `load(key)`, with migration versioning.
+
+### `AdManager.js` (placeholder)
+
+* Stub functions: `showBanner()`, `hideBanner()`, `showInterstitial()`, `showRewarded(callback)`.
+* Replace with real AdMob integration in Unity or use web ad networks for browser.
+
+---
+
+# Asset & Export Specifications (exact sizes and formats)
+
+* Spritesheets: PNG, lossless, RGBA, exported at 2× original resolution for crispness on hi-dpi displays. Frame sizes: 64×64 up to 256×256 depending on art.
+* Background layers: PNG or WebP, width = 3840 px (or tileable), height = 720 px.
+* UI icons: 128×128 PNG with alpha.
+* SFX: WebM/OGG/MP3 for web audio files, but prefer OGG for open formats; sample rate 44.1kHz, 16-bit.
+* Texture atlas: Use TexturePacker or JSON arrays; Phaser supports texture atlases (recommended for perf).
+
+---
+
+# Performance & Optimization
+
+* Use atlases to reduce draw calls.
+* Limit active enemies and use object pooling for bullets, enemies, coins.
+* Use `setActive(false); setVisible(false)` and reuse objects instead of destroying/creating.
+* Use lower-resolution textures with mipmaps for mobile.
+* Limit particle emitter count and lifespan.
+* For mobile: disable physics debug, reduce physics step rate if needed.
+* Use `requestAnimationFrame` and rely on Phaser's internal optimizations.
+
+---
+
+# Accessibility & Localization
+
+* Scalable font sizes; provide large UI mode.
+* Color-blind friendly palettes (toggle).
+* Localization: keep text strings in JSON resource files keyed by language code. Use `i18n/en.json`, `i18n/hi.json`, etc.
+
+---
+
+# Save & Cloud Sync
+
+* Local save in `localStorage` with checksum & version number.
+* Optional: Cloud save via user accounts (future) — connect with backend (Firebase Auth + Firestore) for cross-device sync.
+
+---
+
+# Testing & QA Checklist
+
+* [ ] Run unit tests for SaveManager (load/save/migration).
+* [ ] Validate physics on multiple devices/resolutions.
+* [ ] Test mode switching (car → on-foot → car) in edge cases.
+* [ ] Test collision edge cases (car hitting enemy from below).
+* [ ] Test memory leaks (spawn/destroy cycles).
+* [ ] Test audio on mobile (user gesture unlock for WebAudio).
+* [ ] Test touch controls responsiveness & layout on phones.
+* [ ] Performance profiling on low-end Android devices.
+* [ ] Verify `localStorage` persistence across browser sessions.
+
+---
+
+# Monetization Strategy (Web version + Mobile/Unity port)
+
+## Web (GitHub Pages)
+
+* Web ads: Not recommended on GitHub Pages (mixed results); if desired use host that allows ad scripts (Netlify with custom domain).
+* In-game purchases: Sell cosmetic skins via Stripe or Gumroad links (requires backend).
+* Donations or Patreon link.
+
+## Mobile (Unity port, Google Play)
+
+* Use **Google AdMob** (not AdSense) for mobile ads:
+
+  * Banner on menus, never intrusive in gameplay.
+  * Interstitial after level ends (throttled, e.g., every 2 runs).
+  * Rewarded ads: refill fuel, revive, double coins.
+* In-app purchases (Google Play Billing) for premium currency or one-time remove-ads.
+* Analytics: Firebase Analytics to measure retention and eCPM.
+
+**Important:** Follow Google Play ads & data policies and disclose ad behavior in privacy policy.
+
+---
+
+# Privacy & Legal (what to include)
+
+* **Privacy Policy**: Explain what data you collect (analytics, ads, purchases) and how it is used; required for Play Store and ad networks.
+* **COPPA / Age gating**: If targeting kids, comply with regulations.
+* **Licenses**: Include `LICENSE` for code and list third-party asset licenses (Kenney etc.) in `THIRD_PARTY.md`.
+
+---
+
+# GitHub Pages Deployment (step-by-step)
+
+1. Create a new repo (prefer `username.github.io` for user site or any repo for project page).
+2. Put all files at repo root (`index.html` at root).
+3. Commit & push to `main` branch.
+4. In GitHub: Settings → Pages → Source: `main` branch `/ (root)` → Save.
+5. After build, visit `https://username.github.io/reponame` (project pages) or `https://username.github.io` (user site).
+
+**Note:** If using a project page (not `username.github.io` root), the path will be `username.github.io/reponame`. Use relative asset paths or set `<base href="/reponame/">` in `index.html` if needed.
+
+---
+
+# Replit Deployment
+
+1. Create new Repl (HTML, CSS, JS).
+2. Upload files & folders (drag ZIP upload and extract).
+3. Set `index.html` as the entry.
+4. Click Run — Replit serves the site and gives you a URL.
+5. For custom domain / continuous deployment, connect GitHub repo to Replit.
+
+---
+
+# Porting to Unity (how to plan)
+
+**Why port?** Unity gives native mobile packaging, AdMob SDK integration, better performance on mobile, built-in toolchain for animations and 2D physics.
+
+**Porting steps**
+
+1. Plan mapping: Phaser scenes → Unity Scenes. Entities → Prefabs. JS logic → C# scripts.
+2. Build art assets as spritesheets / atlases and import to Unity (set pixels-per-unit appropriately).
+3. Physics: Phaser Arcade → Unity Rigidbody2D + Collider2D components.
+4. Input mapping: keyboard + Unity touch controls (Unity UI Buttons).
+5. Audio: migrate WebAudio to AudioClips + AudioSources.
+6. Ad integration: add Google Mobile Ads Unity plugin; implement `AdManager` hooks.
+7. Build Android: Install Android SDK, set package name, keystore, and build `.aab` via Unity Hub.
+
+**C# architecture tips**
+
+* Maintain modularity: `CarController.cs`, `PlayerController.cs`, `EnemyController.cs`, `GameManager.cs`, `AudioManager.cs`, `AdManager.cs`.
+* Use ScriptableObjects for config data (speed, health, damage) for easy tuning.
+
+---
+
+# Google Play (publisher) checklist
+
+* Google Play Console account (\$25 one-time).
+* App icon (512×512 PNG), feature graphic (1024×500), screenshots (phone/tablet).
+* Privacy policy URL (hosted on your website or GitHub Pages).
+* Content rating questionnaire.
+* Target API level (use current Play Store requirements — update Unity build settings).
+* .aab file signed with keystore.
+* Android permissions: internet (for ads & analytics), optionally network state.
+
+---
+
+# Analytics & Remote Config
+
+* Integrate Firebase (Analytics + Remote Config) to:
+
+  * Track retention, session length, average run distance, ad revenue (link AdMob).
+  * Use Remote Config to tune spawn rates, ad frequency, and event rewards.
+
+---
+
+# Security & Anti-cheat
+
+* Save verification: use simple checksums for local saves; for serious games, implement server-side validation.
+* Prevent trivial coin manipulation by obfuscating save or using server verifies for purchases.
+
+---
+
+# QA / Usability Notes
+
+* Tutorial: include a short interactive tutorial on first run (teach drive → exit → fight).
+* Difficulty curve: gradually introduce enemy types and obstacles.
+* On-screen hints for mobile controls early in game.
+* Visual feedback for pickups & damage: color flashes, small text popups + sound.
+
+---
+
+# Accessibility Features to Implement
+
+* Toggle large UI / color-blind mode.
+* Remappable keys in settings.
+* Subtitles for audio cues (optional).
+* Single-button mode: auto-aim & auto-jump for accessibility playstyle.
+
+---
+
+# Roadmap & Prioritized Task List (MVP → AAA)
+
+## MVP (1–2 sprints)
+
+1. Core driving physics (Car.js) + fuel system.
+2. Basic enemy spawns & car crushing.
+3. Player exit/enter and on-foot melee (punch/kick).
+4. Coin pickups & simple garage upgrades persisted to localStorage.
+5. Menus: Main, Garage, Results.
+6. Responsive UI & parallax backgrounds.
+7. Basic synthesized audio & particles.
+8. Deploy to GitHub Pages / Replit.
+
+## Post-MVP (polish)
+
+1. Replace procedural textures with proper spritesheets & animations.
+2. Add more enemy types & variety of pickups.
+3. Bullet pooling & enemy pooling for perf.
+4. Add virtual touch controls.
+5. Accessibility & localization.
+6. Performance optimization on mobile.
+
+## Mobile / Monetization (release candidate)
+
+1. Port to Unity or wrap WebGL as WebView (prefer Unity for performance and ad SDK).
+2. Integrate AdMob and Firebase.
+3. Add IAP (remove ads, coin packs).
+4. Beta testing, fix platform-specific bugs.
+5. Publish to Google Play.
+
+---
+
+# Example Implementation Snippets (summary)
+
+* **SaveManager**: uses `JSON.stringify` to save object with `version` and `checksum`.
+* **Object pooling**: create `Pool` class that `get()` and `release()` objects.
+* **AdManager stub**: provide `showRewarded(callback)` that calls `callback(true)` in web (simulate rewarded ad) and in Unity hook to real AdMob.
+
+---
+
+# Testing Matrix (devices & browsers)
+
+* Chrome Desktop (latest)
+* Firefox Desktop
+* Safari Desktop (check audio autoplay gestures)
+* Chrome Android (low-end device \~2GB RAM)
+* Samsung browser
+* iOS Safari (WebAudio limitations / Apple policies) — gameplay should work but WebAudio needs user gesture.
+
+---
+
+# Developer Handoff Notes
+
+* Keep a `CHANGELOG.md` with semantically versioned updates.
+* Document config values in `config/gameConfig.js` (spawn rates, damage values).
+* Provide `ART_STYLE_GUIDE.md` for illustrators specifying palette, silhouette rules, and animation timing.
+* Provide `SOUND_GUIDE.md` with SFX style and BPM for background loops.
+
+---
+
+# Final Checklist before publishing (pre-release)
+
+* [ ] Replace procedural assets with final art & animations.
+* [ ] Replace synthesized audio with final SFX & music (ensure proper licensing).
+* [ ] Implement save migration strategy.
+* [ ] Prepare privacy policy and contact email.
+* [ ] Test ads flow & implement frequency caps.
+* [ ] Complete content rating questionnaire.
+* [ ] Test .aab on multiple Android devices.
+* [ ] Upload to Play Console & follow release track (internal → closed → open).
+
+---
+
+If you’d like, I can now:
+
+* Generate the full **technical design doc in Markdown** ready for your repo README (I can paste it here), or
+* Produce **detailed C# Unity skeleton files** mapping each JS file to a Unity script (so porting is straightforward), or
+* Expand any section above into even more low-level specifics (e.g., exact JSON schema for saves, exact pool implementation, example `config.js` values, or mobile touch layouts with coordinate maps).
+
+Which of these next? (Or say “do it all” and I’ll dump the full Markdown doc ready to paste into `README.md`.)
